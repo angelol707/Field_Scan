@@ -1,0 +1,122 @@
+Field Scan : l'analyse complète d'une bananeraie vue du ciel
+Construis en un mois une chaîne d'IA qui transforme des images aériennes d'une bananeraie en bulletin de santé, parcelle par parcelle : comptage des pieds, vigueur, stress hydrique et maladies, avec une carte et une décision traçable jusqu'à l'image source.
+Contexte
+
+Une bananeraie industrielle, ce sont des milliers d'hectares à surveiller en continu. Aujourd'hui, l'essentiel du suivi se fait encore à pied : des équipes parcourent les rangs pour compter les plants, repérer les zones qui souffrent du manque d'eau et chercher les premières taches de maladie sur les feuilles. C'est lent, coûteux, et souvent trop tard : quand un problème se voit à l'œil nu, il s'est déjà étendu.
+
+Le drone et le satellite changent la donne. En quelques vols, on obtient une image complète de la plantation. Encore faut-il savoir la lire : une image ne vaut que par la décision qu'elle permet de prendre.
+
+Ce sujet s'inspire d'un besoin réel exprimé par un grand producteur de bananes, partenaire de l'I Lab, et des travaux d'Horama en IA visuelle appliquée à l'agriculture. Il couvre tous les enjeux du terrain :
+
+Enjeu	Question opérationnelle
+Comptage des pieds	Combien de plants par parcelle ? Où sont les manquants ? Comment distinguer pieds mères et rejets ?
+État sanitaire et vigueur	Quelles zones sont moins vigoureuses que le reste de la parcelle ?
+Stress hydrique	Où l'irrigation est-elle insuffisante ou mal répartie ?
+Maladies	Où trouve-t-on des signes de cercosporiose noire (Black Sigatoka) ou d'autres maladies foliaires ?
+Décision	Où envoyer les équipes, et quoi traiter en priorité ?
+Les difficultés sont bien réelles : canopée dense dès la troisième génération, rejets qui poussent au pied des plants mères, symptômes de quelques millimètres, variations de lumière d'un vol à l'autre. Un modèle qui marche sur une parcelle et échoue sur la voisine n'a aucune valeur.
+
+Objectif
+
+Construire une chaîne complète qui prend en entrée les images aériennes d'une plantation (drone et/ou satellite) et produit :
+
+Une carte des pieds : chaque plant détecté et géolocalisé, avec un comptage par parcelle.
+Une carte de vigueur : les zones anormalement faibles, à partir d'indices de végétation.
+Une carte de stress hydrique : les zones probablement en manque d'eau.
+Une détection de maladies : un modèle capable de reconnaître la cercosporiose sur des images de feuilles, et de dire « je ne sais pas » face à un symptôme inconnu.
+Un bulletin par parcelle : un score de santé, les alertes, les zones prioritaires, chaque constat rattaché à l'image qui le justifie.
+Le modèle doit rester sobre (inférence possible sans GPU sur une station de terrain) et honnête : il signale ce qu'il ne sait pas plutôt que d'inventer.
+
+Cadre
+
+Format : individuel, 1 mois, en autonomie.
+Données fournies : aucune. Chaque participant recherche, sélectionne et assemble ses propres données publiques. Trouver les bonnes images fait partie du travail.
+Contraintes : documenter la provenance, la licence, la résolution, la date d'acquisition, le découpage entraînement/validation/test et les risques de fuite de chaque source.
+Outils : Python, GitHub, GPU gratuits (Colab, Kaggle). Les modèles pré-entraînés sont autorisés, mais leur usage doit être documenté.
+Découpage honnête : jamais de découpage aléatoire d'images d'une même zone. On sépare par parcelle, par site ou par pays.
+Périmètre : un socle et des modules
+
+Socle obligatoire
+
+Chargement et préparation d'images géoréférencées (GeoTIFF, orthomosaïque, Sentinel-2).
+Découpage en parcelles (polygones tracés à la main ou détectés).
+Comptage des pieds par détection d'objets, avec gestion des rejets.
+Carte de vigueur par indices de végétation (NDVI, NDRE si multispectral ; ExG, VARI si RGB uniquement).
+Bulletin par parcelle (carte et tableau).
+Modules (au moins deux sur trois)
+
+Stress hydrique : indices sensibles à l'eau (NDMI ou NDWI sur Sentinel-2, thermique si disponible), suivi dans le temps, comparaison saison sèche et saison des pluies.
+Maladies : classification de feuilles saines ou malades (cercosporiose, fusariose…), avec détection de l'inconnu. Entraînement sur un pays, test sur un autre.
+Suivi temporel : comparaison de deux dates pour détecter ce qui a changé (plants disparus, zones qui se dégradent).
+Organisation indicative
+
+Semaine 1 : comprendre et collecter. Comprendre le bananier (cycle, rejets, symptômes), constituer les données, aligner les images sur les parcelles, calculer les premiers indices.
+Semaine 2 : comptage et vigueur. Baseline classique (seuillage, maxima locaux), puis un détecteur appris. Mesurer l'effet de la résolution et de l'altitude.
+Semaine 3 : modules. Stress hydrique et/ou maladies, avec ablations : qu'apporte chaque bande spectrale, chaque augmentation, le pré-entraînement ?
+Semaine 4 : fiabiliser et présenter. Alléger le modèle, analyser les erreurs, construire le bulletin et la démo.
+Livrables
+
+Code sur le repo GitHub (README d'installation).
+run.py --images DOSSIER --parcelles parcelles.geojson --out resultats/ : une commande qui produit cartes et bulletin.
+Les poids des modèles entraînés.
+Un carnet de données : sources, licences, résolution, dates, composition, biais et limites.
+Un rapport (4 pages max) : choix techniques, tableau comparatif des approches (performance, taille, vitesse), ablations, analyse des cas d'échec.
+Une démo : charger une zone jamais vue, afficher la carte des pieds, la vigueur, le stress et les alertes, et cliquer sur une alerte pour voir l'image source.
+Les sorties au format géospatial (GeoJSON des pieds et des alertes, GeoTIFF des cartes) pour ouverture dans QGIS.
+Comment ton travail est évalué
+
+À la fin, l'orga lance ta chaîne sur une zone de test que tu n'as jamais vue, ainsi que sur un jeu de feuilles d'une autre origine géographique.
+
+Tâche	Métrique
+Comptage des pieds	F1 de détection (appariement à 1 m) et erreur de comptage par parcelle
+Maladies	Précision, rappel, taux de fausses alertes sur feuilles saines, rejet de l'inconnu
+Vigueur et stress	Cohérence avec la référence de l'orga sur les zones annotées, et justification physique des indices choisis
+Embarquabilité	Taille des modèles, temps de traitement par hectare sur CPU
+Critères d'évaluation
+
+Critère	Poids
+Performance sur la zone de test (comptage, maladies, vigueur et stress)	40 %
+Carnet de données, rapport d'ablation et soutenance	30 %
+Chaîne de traitement (complétude, reproductibilité, qualité du code)	15 %
+Démo et lisibilité du bulletin par parcelle	15 %
+Règles
+
+Règle	Détail
+Données	Uniquement des sources publiques dont la licence autorise l'usage. Chaque source est documentée.
+Découpage	Séparation par zone ou par pays, jamais aléatoire. Toute fuite entre entraînement et test disqualifie.
+Modèles	Pré-entraînés autorisés et documentés.
+Vérification	Les 3 premiers sont relancés par l'orga avec leur propre code. Un écart inexpliqué disqualifie.
+Assistants IA	Autorisés, mais tu dois pouvoir expliquer chaque ligne de ton code à la soutenance.
+Bonus : le pilote
+
+Propose un plan d'intervention : à partir de ton bulletin, quelles parcelles visiter cette semaine, dans quel ordre, et quel gain de temps par rapport à une tournée complète à pied ? Non noté automatiquement : tu défends tes choix à la soutenance.
+
+Ressources
+
+Données : feuilles et maladies
+
+Dataset feuilles et tiges de bananier, Tanzanie (16 092 images, Black Sigatoka, Fusarium)
+Banana Leaves Imagery Dataset, Scientific Data 2025
+BananaLSD : Sigatoka, Cordana, Pestalotiopsis (Bangladesh)
+Données : images aériennes et satellite
+
+Copernicus Browser (images Sentinel-2)
+OpenDroneMap (créer une orthomosaïque à partir de photos drone)
+Articles de référence
+
+Détection et comptage de bananiers par drone RGB (PLOS One 2019)
+Détection de bananiers sur images drone multispectrales multi-dates (Remote Sensing 2021)
+Agroforestry inventory : détection par espèce, dont la banane, et ses limites
+Outils
+
+TorchGeo
+rasterio
+QGIS
+DeepForest (détection de couronnes d'arbres)
+ONNX Runtime
+Calcul gratuit
+
+Google Colab (GPU T4 gratuit, sauvegarde tes checkpoints sur Drive) ou Kaggle Notebooks (quota hebdomadaire).
+Point de vigilance
+
+Le périmètre est large : mieux vaut un socle solide et deux modules bien mesurés que tout survoler. Un modèle qui alerte partout n'a aucune valeur, la fiabilité compte autant que la détection. Les images de feuilles sont prises au sol et de près, pas par drone : documente cet écart et ce qu'il implique pour un passage en conditions réelles.
